@@ -75,12 +75,17 @@ const sumItems = (items) => +items.reduce((s, i) => s + i.amount, 0).toFixed(2);
  */
 export function computeFee({
   product, weight, volumeL = 0, insured = 0, destAddr = '',
-  length = 0, pack = false, customer = null,
+  length = 0, width = 0, height = 0, pack = false, customer = null,
 } = {}) {
   const r = getRules();
   const rate = findRate(product);
 
-  const volWeight = volumeL && rate.vol_divisor ? volumeL / rate.vol_divisor : 0;
+  // 体积重量：优先录入长×宽×高(cm)，体积重 = 长×宽×高 ÷ 6000(cm³/kg)；
+  // volumeL 为兼容入参（单位升），先换算 cm³ 再除：volumeL×1000÷6000。
+  const dimsCm3 = length > 0 && width > 0 && height > 0 ? Number(length) * Number(width) * Number(height) : 0;
+  const cm3 = dimsCm3 || (Number(volumeL) || 0) * 1000;
+  const volWeight = cm3 && rate.vol_divisor ? cm3 / rate.vol_divisor : 0;
+  const maxSide = Math.max(Number(length) || 0, Number(width) || 0, Number(height) || 0);
   const rawKg = Math.max(Number(weight) || 0, volWeight, 0.01);
   const chargeKg = Math.max(1, Math.ceil(rawKg - 1e-9)); // 进位到整公斤计费
 
@@ -116,9 +121,9 @@ export function computeFee({
     items.push({ code: 'overweight', label: '超重附加费', amount: r.overweight_fee, rule: `计费重 ${chargeKg}kg 超过 ${r.overweight_kg}kg` });
   }
 
-  // 6) 超长附加
-  if (length && length > r.oversize_cm) {
-    items.push({ code: 'oversize', label: '超长附加费', amount: r.oversize_fee, rule: `单边 ${length}cm 超过 ${r.oversize_cm}cm` });
+  // 6) 超长附加（取三边中最长边判定）
+  if (maxSide && maxSide > r.oversize_cm) {
+    items.push({ code: 'oversize', label: '超长附加费', amount: r.oversize_fee, rule: `最长边 ${maxSide}cm 超过 ${r.oversize_cm}cm` });
   }
 
   const subtotal = sumItems(items);
@@ -144,6 +149,8 @@ export function computeFee({
   return {
     product: rate.name,
     chargeKg,
+    volWeight: +volWeight.toFixed(2),
+    dims: dimsCm3 ? { length: Number(length), width: Number(width), height: Number(height) } : null,
     rawKg: +rawKg.toFixed(2),
     zone: zone.zone,
     zone_label: zone.label,

@@ -155,13 +155,17 @@ router.post('/pickup', (req, res) => {
       weight,
       volumeL: Number(b.volumeL) || 0,
       insured: Number(b.insured) || 0,
+      length: Number(b.length) || 0,
+      width: Number(b.width) || 0,
+      height: Number(b.height) || 0,
+      pack: !!b.pack,
     });
     q.run(`UPDATE orders SET status='已揽收' WHERE id=?`, task.order_id);
     q.run(`UPDATE pickup_tasks SET status='已揽收' WHERE id=?`, task.id);
     event(w.waybill_no, '揽收点', `快件已揽收，运费 ¥${w.fee}（${w.detail}），承诺送达 ${w.promise_time}`, task.order_no);
     return w;
   });
-  ok(res, { waybill_no: result.waybill_no, fee: result.fee, detail: result.detail, promise_time: result.promise_time });
+  ok(res, { waybill_no: result.waybill_no, fee: result.fee, detail: result.detail, promise_time: result.promise_time, chargeKg: result.chargeKg, volWeight: result.volWeight, items: result.items });
 });
 
 /* ---------- ④ 分拣中转登记 ---------- */
@@ -204,8 +208,8 @@ router.post('/transit', (req, res) => {
 
   const r = tx(() => {
     const ins = q.run(
-      'INSERT INTO transit_logs (waybill_no,node,next_hop,flight,operator_id,created_at) VALUES (?,?,?,?,?,?)',
-      waybill_no, node, hop ?? '', flight ?? '', operator_id ?? null, now()
+      'INSERT INTO transit_logs (waybill_no,node,next_hop,flight,operator_id,security,created_at) VALUES (?,?,?,?,?,?,?)',
+      waybill_no, node, hop ?? '', flight ?? '', operator_id ?? null, security ? 1 : 0, now()
     );
     event(
       waybill_no,
@@ -277,6 +281,7 @@ router.post('/delivery/sign', (req, res) => {
   const t = q.get('SELECT * FROM delivery_tasks WHERE id=?', id);
   if (!t) return fail(res, '派件任务不存在', 404);
   if (t.status === '已签收') return fail(res, '该任务已签收');
+  if (!['待派送', '派送中'].includes(t.status)) return fail(res, `任务状态为「${t.status}」，不能签收`);
   if (!signer) return fail(res, '请填写签收人');
 
   tx(() => {
@@ -284,7 +289,7 @@ router.post('/delivery/sign', (req, res) => {
       signer, sign_way ?? '本人签收', now(), id);
     const w = q.get('SELECT * FROM waybills WHERE waybill_no=?', t.waybill_no);
     const s = setWaybillStatus(t.waybill_no, '已签收', ', signed_at=?', now());
-    if (!s.ok) throw new Error(s.error);
+    if (!s.ok) throw biz(s.error);
     const late = w?.promise_time && now() > w.promise_time ? '（超承诺时效）' : '';
     event(t.waybill_no, '收件地址', `快件已签收，签收人：${signer}（${sign_way ?? '本人签收'}）${late}`);
   });
@@ -295,13 +300,15 @@ router.post('/delivery/sign', (req, res) => {
 router.post('/delivery/fail', (req, res) => {
   const t = q.get('SELECT * FROM delivery_tasks WHERE id=?', req.body?.id);
   if (!t) return fail(res, '派件任务不存在', 404);
+  if (['已签收', '派送异常'].includes(t.status)) return fail(res, `任务状态为「${t.status}」，不能再登记派送异常`);
   const type = req.body?.type ?? '拒收';
+  if (!['拒收', '破损', '丢失'].includes(type)) return fail(res, '异常类型须为 拒收 / 破损 / 丢失（联系不上请改约派送，不要登记为异常件）');
   tx(() => {
     q.run(`UPDATE delivery_tasks SET status='派送异常' WHERE id=?`, t.id);
     const r = q.run('INSERT INTO exceptions (waybill_no,type,desc_text,status,created_at) VALUES (?,?,?,?,?)',
       t.waybill_no, type, req.body?.desc ?? '派送异常登记', '待处理', now());
     const s = setWaybillStatus(t.waybill_no, '异常');
-    if (!s.ok) throw new Error(s.error);
+    if (!s.ok) throw biz(s.error);
     event(t.waybill_no, '派送异常', `类型：${type}${req.body?.desc ? '，' + req.body.desc : ''}`);
     return r.lastInsertRowid;
   });

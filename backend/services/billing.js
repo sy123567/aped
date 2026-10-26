@@ -103,6 +103,8 @@ router.get('/billing/:id', (req, res) => {
 router.post('/billing/items/:id/freeze', allow('finance'), (req, res) => {
   const it = q.get('SELECT * FROM bill_items WHERE id=?', req.params.id);
   if (!it) return fail(res, '明细不存在', 404);
+  const bill0 = q.get('SELECT * FROM bills WHERE id=?', it.bill_id);
+  if (bill0?.status === '已结清') return fail(res, '账单已结清，不能再冻结/解冻明细');
   const frozen = req.body?.frozen === false ? 0 : 1;
   tx(() => {
     q.run('UPDATE bill_items SET frozen=? WHERE id=?', frozen, it.id);
@@ -144,13 +146,13 @@ router.get('/billing/:id/receipts', (req, res) => {
 });
 
 /* ---------- 供揽收登记调用：生成运单并计费（分区 + 阶梯续重 + 附加费 + 协议折扣） ---------- */
-export function createWaybillForOrder({ orderId, product, weight, volumeL, insured, length = 0, pack = false }) {
+export function createWaybillForOrder({ orderId, product, weight, volumeL, insured, length = 0, width = 0, height = 0, pack = false }) {
   const order = q.get('SELECT * FROM orders WHERE id=?', orderId);
   const cust = order?.customer_id ? q.get('SELECT * FROM customers WHERE id=?', order.customer_id) : null;
 
   const f = computeFee({
     product, weight, volumeL, insured,
-    destAddr: order?.recv_addr ?? '', length, pack, customer: cust,
+    destAddr: order?.recv_addr ?? '', length, width, height, pack, customer: cust,
   });
   const rate = findRate(f.product);
   const waybill_no = nextNo('88', 'waybills', 'waybill_no', 5);
@@ -163,15 +165,16 @@ export function createWaybillForOrder({ orderId, product, weight, volumeL, insur
     waybill_no, orderId, f.product, rate.first_kg, rate.first_price, rate.cont_price, rate.vol_divisor,
     Number(insured) || 0, f.total, f.detail, '已揽收', pt,
     JSON.stringify({
-      chargeKg: f.chargeKg, rawKg: f.rawKg, zone: f.zone, zone_label: f.zone_label, zone_coef: f.zone_coef,
+      chargeKg: f.chargeKg, rawKg: f.rawKg, volWeight: f.volWeight, dims: f.dims,
+      zone: f.zone, zone_label: f.zone_label, zone_coef: f.zone_coef,
       product: f.product, weight: Number(weight), volumeL: Number(volumeL) || 0,
       insured: Number(insured) || 0, items: f.items, total: f.total,
-      rules_version: 'pricing-v2',
+      rules_version: 'pricing-v3-dims',
     }),
     f.zone
   );
 
-  return { waybill_no, fee: f.total, detail: f.detail, promise_time: pt, items: f.items, zone: f.zone, chargeKg: f.chargeKg };
+  return { waybill_no, fee: f.total, detail: f.detail, promise_time: pt, items: f.items, zone: f.zone, chargeKg: f.chargeKg, volWeight: f.volWeight, dims: f.dims };
 }
 
 export default router;

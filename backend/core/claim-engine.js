@@ -110,8 +110,10 @@ export function assessForException(exceptionId, { severity, photos } = {}) {
   const ex = q.get('SELECT * FROM exceptions WHERE id=?', exceptionId);
   if (!ex) return null;
   const w = q.get('SELECT * FROM waybills WHERE waybill_no=?', ex.waybill_no);
+  // 安检判定：transit_logs 没有 desc_text 列（旧写法查该列直接抛错导致 500）。
+  // 现行口径：中转登记时写入 transit_logs.security=1；老数据再用 events 描述文本兜底。
   const securityPassed = !!q.get(
-    `SELECT 1 x FROM transit_logs WHERE waybill_no=? AND (desc_text LIKE '%安检%' OR node LIKE '%安检%') LIMIT 1`,
+    `SELECT 1 x FROM transit_logs WHERE waybill_no=? AND security=1 LIMIT 1`,
     ex.waybill_no
   ) || !!q.get(`SELECT 1 x FROM events WHERE waybill_no=? AND desc_text LIKE '%安检%' LIMIT 1`, ex.waybill_no);
 

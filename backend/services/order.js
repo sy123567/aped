@@ -14,7 +14,8 @@ router.post('/orders/quote', (req, res) => {
   const customer = b.customer_id ? q.get('SELECT * FROM customers WHERE id=?', b.customer_id) : null;
   const f = computeFee({
     product: b.product, weight: b.weight, volumeL: b.volumeL ?? 0, insured: b.insured ?? 0,
-    destAddr: b.dest_addr ?? b.recv_addr ?? '', length: b.length ?? 0, pack: !!b.pack, customer,
+    destAddr: b.dest_addr ?? b.recv_addr ?? '',
+    length: b.length ?? 0, width: b.width ?? 0, height: b.height ?? 0, pack: !!b.pack, customer,
   });
   ok(res, { ...f, promise_time: promiseTime(f.product) });
 });
@@ -35,7 +36,11 @@ router.post('/orders', allow('dispatcher', 'customer'), (req, res) => {
   if (!area.supported) return fail(res, area.note);
 
   const cust = customerId ? q.get('SELECT * FROM customers WHERE id=?', customerId) : null;
-  const est = computeFee({ product: b.product, weight: b.weight ?? 1, destAddr: b.recv_addr, customer: cust });
+  const est = computeFee({
+    product: b.product, weight: b.weight ?? 1, destAddr: b.recv_addr, customer: cust,
+    length: b.length ?? 0, width: b.width ?? 0, height: b.height ?? 0,
+    volumeL: b.volumeL ?? 0, insured: b.insured ?? 0,
+  });
   const order_no = nextNo('SO', 'orders', 'order_no');
 
   const id = tx(() => {

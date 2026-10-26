@@ -95,10 +95,10 @@ onUnmounted(() => clearInterval(timer));
         <table class="doc">
           <thead><tr><th>口径</th><th>规则</th></tr></thead>
           <tbody>
-            <tr><td>计费</td><td class="mono">首重1kg ¥12 + 续重 ¥4/kg；时效系数 1.2 / 1.0 / 0.85</td></tr>
-            <tr><td>体积重量</td><td class="mono">体积(L) ÷ 6000，与实重取大计费</td></tr>
+            <tr><td>计费</td><td class="mono">（首重 + 阶梯续重）× 时效系数 × 区域系数 + 燃油/保价等附加费</td></tr>
+            <tr><td>体积重量</td><td class="mono">长×宽×高(cm) ÷ 6000，与实重取大计费</td></tr>
             <tr><td>保价</td><td class="mono">保价费 = 保价额 × 3‰；理赔上限 = 保价额</td></tr>
-            <tr><td>绩效分</td><td class="mono">揽派总量 × 10 − 异常数 × 30</td></tr>
+            <tr><td>绩效分</td><td class="mono">揽收/签收/准时率/异常率归一化后按权重加权（样本 &lt;3 单不排名）</td></tr>
           </tbody>
         </table>
       </div>

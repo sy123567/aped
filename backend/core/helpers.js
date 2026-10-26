@@ -76,14 +76,17 @@ export function findRate(product) {
 }
 
 /**
- * 首重续重 + 产品时效系数 + 体积重量折算 + 保价费
- * 体积重量沿用界面约定：体积(L) ÷ 体积除数
+ * 首重续重 + 产品时效系数 + 体积重量折算 + 保价费（简化版，主引擎见 core/pricing.js）
+ * 体积重量口径：优先长×宽×高(cm) → cm³ ÷ 体积除数(6000)；
+ * volumeL 仅作兼容入参，单位为升，换算 cm³ 后再除（1L = 1000cm³，即 volumeL×1000÷6000）。
  */
-export function calcFee({ product, weight, volumeL, insured }) {
+export function calcFee({ product, weight, volumeL, insured, length = 0, width = 0, height = 0 }) {
   const r = findRate(product);
   const w = Number(weight) || 0;
-  const vl = Number(volumeL) || 0;
-  const volWeight = vl && r.vol_divisor ? vl / r.vol_divisor : 0;
+  const cm3 = length > 0 && width > 0 && height > 0
+    ? Number(length) * Number(width) * Number(height)
+    : (Number(volumeL) || 0) * 1000;
+  const volWeight = cm3 && r.vol_divisor ? cm3 / r.vol_divisor : 0;
   const chargeKg = Math.max(w, volWeight, 0.01);
   const contKg = Math.max(0, Math.ceil(chargeKg - r.first_kg));
   const freight = (r.first_price + contKg * r.cont_price) * r.coef;
@@ -110,7 +113,7 @@ export const WB_FLOW = {
   转运中: ['派送中', '异常'],
   派送中: ['已签收', '异常'],
   异常: ['派送中', '已签收', '已关闭'],
-  已签收: [],
+  已签收: ['已关闭'], // 签收后发现破损/丢失走理赔赔付（或异常直接关闭）时必须能关单，否则审批事务回滚
   已关闭: [],
 };
 

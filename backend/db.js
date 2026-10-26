@@ -187,6 +187,7 @@ addCol('claims', 'evidence', 'TEXT');
 addCol('users', 'customer_id', 'INTEGER');
 addCol('exceptions', 'severity', "TEXT DEFAULT '中度'");
 addCol('waybills', 'dest_zone', 'TEXT');
+addCol('transit_logs', 'security', 'INTEGER DEFAULT 0'); // 1=已过航空安检（定责引擎读取，老库靠 events 文本兜底）
 
 // order_no 列加完才能建这个索引
 try {

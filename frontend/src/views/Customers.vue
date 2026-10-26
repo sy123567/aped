@@ -1,6 +1,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { api, fmt } from '../api.js';
+import { api, fmt, session } from '../api.js';
+
+// 取消订单接口只对调度/客户本人开放（财务角色调用会被后端 403），故按角色隐藏按钮，admin 恒可
+const canCancel = ['admin', 'dispatcher'].includes(session.user?.role);
 
 const list = ref([]);
 const detail = ref(null);
@@ -125,7 +128,7 @@ async function cancel(o) {
             <td class="num">{{ o.est_fee ? fmt(o.est_fee) : '—' }}</td>
             <td class="mono">{{ o.created_at }}</td>
             <td>
-              <button v-if="['待派单','待揽收'].includes(o.status)" class="btn small" @click="cancel(o)">取消</button>
+              <button v-if="canCancel && ['待派单','待揽收'].includes(o.status)" class="btn small" @click="cancel(o)">取消</button>
               <span v-else style="color:var(--slate)">—</span>
             </td>
           </tr>

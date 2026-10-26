@@ -28,12 +28,28 @@ app.get('/api/health', (_req, res) =>
 );
 
 // 2) 以下全部需要登录；按角色限定模块
+// 注意：不能把 allow() 直接串在 app.use('/api', ...) 上——Express 中间件是串行的，
+// 前置网关会拦截「不属于本服务」的请求，导致 claims 连 /exceptions 都到不了理赔路由
+// （实测：claims 被计费网关 403、courier 被计费网关挡住揽收接口、ops 到不了绩效接口）。
+// 因此网关必须按路径前缀分发：只有命中本服务前缀才鉴权，其余请求放行给后续服务。
+const gate = (prefixes, ...roles) => {
+  const check = allow(...roles);
+  return (req, res, next) => {
+    const p = req.path;
+    if (prefixes.some((x) => p === x || p.startsWith(x + '/'))) return check(req, res, next);
+    return next();
+  };
+};
+const BILLING_PATHS = ['/rates', '/pricing', '/billing'];
+const DISPATCH_PATHS = ['/dispatch', '/employees', '/flights', '/pickup', '/transit', '/delivery'];
+const CLAIM_PATHS = ['/exceptions', '/claims'];
+
 app.use('/api', requireAuth);
-app.use('/api', orderService);                                      // 订单/客户/轨迹：登录即可（写操作在路由内部再限）
-app.use('/api', allow('finance', 'customer'), billingService);       // 计费与账单（客户只读自己的，写操作在路由内部再限）
-app.use('/api', allow('dispatcher', 'courier'), dispatchService);   // 揽派调度
-app.use('/api', allow('claims'), claimService);                     // 异常理赔
-app.use('/api', performanceService);                                // 绩效报表（读接口内部再限）
+app.use('/api', orderService);                                       // 订单/客户/轨迹：登录即可（写操作在路由内部再限）
+app.use('/api', gate(BILLING_PATHS, 'finance', 'customer'), billingService); // 计费服务（客户只读自己的，写操作在路由内部再限）
+app.use('/api', gate(DISPATCH_PATHS, 'dispatcher', 'courier'), dispatchService); // 揽派调度服务
+app.use('/api', gate(CLAIM_PATHS, 'claims'), claimService);          // 异常理赔服务
+app.use('/api', performanceService);                                 // 绩效统计服务（读接口内部再限）
 
 // 静态托管前端构建产物（若已 build）
 const distDir = fileURLToPath(new URL('../frontend/dist', import.meta.url));

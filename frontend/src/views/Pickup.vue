@@ -5,33 +5,54 @@ import { api, fmt } from '../api.js';
 const tasks = ref([]);
 const msg = ref('');
 const err = ref('');
-const form = ref({ task_id: null, weight: '', volumeL: '', insured: '', product: '隔日达' });
+const loading = ref(false);
+const busy = ref(false);
+const form = ref({ task_id: null, weight: '', length: '', width: '', height: '', insured: '', product: '隔日达' });
 
-const reload = async () => { tasks.value = await api.pickupTasks(); };
+const reload = async () => {
+  loading.value = true;
+  try { tasks.value = await api.pickupTasks(); } catch (e) { err.value = e.message; }
+  finally { loading.value = false; }
+};
 onMounted(reload);
+
+// 体积重（前端即时提示，与后端同一口径）：长×宽×高(cm) ÷ 6000，与实重取大
+const volWeight = () => {
+  const { length, width, height } = form.value;
+  return length > 0 && width > 0 && height > 0 ? (length * width * height / 6000) : 0;
+};
 
 async function accept(t) {
   try { await api.acceptPickup(t.id); msg.value = `已接单：${t.order_no}`; reload(); }
   catch (e) { err.value = e.message; }
 }
 function start(t) {
-  form.value = { task_id: t.id, weight: t.weight ?? '', volumeL: '', insured: '', product: '隔日达' };
+  form.value = { task_id: t.id, weight: t.weight ?? '', length: '', width: '', height: '', insured: '', product: '隔日达' };
   msg.value = ''; err.value = '';
   document.getElementById('pickup-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 async function submit() {
   msg.value = ''; err.value = '';
+  const w = Number(form.value.weight);
+  if (!(w > 0) || w > 1000) { err.value = '实重须在 0.01~1000kg'; return; }
+  const dims = [form.value.length, form.value.width, form.value.height].filter((v) => v !== '' && v != null);
+  if (dims.length && dims.length !== 3) { err.value = '长、宽、高须同时填写（用于体积重计算），或全部留空'; return; }
+  if (dims.some((v) => !(Number(v) > 0))) { err.value = '长宽高须为正数（cm）'; return; }
+  busy.value = true;
   try {
     const d = await api.pickup({
       task_id: form.value.task_id,
-      weight: Number(form.value.weight),
-      volumeL: Number(form.value.volumeL || 0),
+      weight: w,
+      length: Number(form.value.length || 0),
+      width: Number(form.value.width || 0),
+      height: Number(form.value.height || 0),
       insured: Number(form.value.insured || 0),
       product: form.value.product,
     });
-    msg.value = `揽收成功：运单号 ${d.waybill_no}，运费 ${fmt(d.fee)}（${d.detail}）`;
+    msg.value = `揽收成功：运单号 ${d.waybill_no}，运费 ${fmt(d.fee)}（计费重 ${d.chargeKg}kg${d.volWeight ? `，体积重 ${d.volWeight}kg` : ''}；${d.detail}）`;
     reload();
   } catch (e) { err.value = e.message; }
+  finally { busy.value = false; }
 }
 </script>
 
@@ -86,17 +107,22 @@ async function submit() {
         </select>
       </div>
       <div class="field"><label>实重(kg)</label><input v-model="form.weight" type="number" min="0.01" max="1000" step="0.01" /></div>
-      <div class="field"><label>体积(L)</label><input v-model="form.volumeL" type="number" min="0" step="0.1" /></div>
+      <div class="field"><label>长(cm)</label><input v-model="form.length" type="number" min="0" step="0.1" /></div>
+      <div class="field"><label>宽(cm)</label><input v-model="form.width" type="number" min="0" step="0.1" /></div>
+      <div class="field"><label>高(cm)</label><input v-model="form.height" type="number" min="0" step="0.1" /></div>
       <div class="field"><label>保价金额(元)</label><input v-model="form.insured" type="number" min="0" step="10" /></div>
       <div class="field"><label>产品时效</label>
         <select v-model="form.product">
           <option>次日达</option><option>隔日达</option><option>经济件</option>
         </select>
       </div>
-      <button class="btn" :disabled="!form.task_id || !form.weight" @click="submit">提交揽收并生成运单</button>
+      <button class="btn" :disabled="busy || !form.task_id || !form.weight" @click="submit">{{ busy ? '提交中…' : '提交揽收并生成运单' }}</button>
     </div>
+    <p v-if="volWeight()" style="color: var(--slate); font-size: 12px;">
+      体积重提示：{{ form.length }}×{{ form.width }}×{{ form.height }}cm ÷ 6000 = {{ volWeight().toFixed(2) }}kg，将与实重 {{ form.weight || '—' }}kg 取大计费。
+    </p>
     <p style="color: var(--slate); font-size: 12px;">
-      计费规则：首重 1kg ¥12，续重 ¥4/kg；体积重量 = 体积(L) ÷ 6000，取大计费；时效系数 次日达 ×1.2、隔日达 ×1.0、经济件 ×0.85；保价费 = 保价额 × 3‰。
+      计费规则：基础运费 =（首重 + 阶梯续重）× 产品时效系数 × 区域系数，再叠加燃油/保价/包装/超重超长，月结客户享协议折扣且不低于最低一票；体积重量 = 长×宽×高(cm) ÷ 6000，与实重取大；保价费 = 保价额 × 3‰。完整明细随运单 fee_snapshot 落库，可在计费试算与账单中逐项对账。
     </p>
   </div>
 </template>

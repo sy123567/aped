@@ -6,8 +6,8 @@ const tasks = ref([]);
 const waybills = ref([]);
 const msg = ref('');
 const err = ref('');
-const courierId = ref(1);
 const selected = ref([]);
+const lastAssign = ref([]);
 const signing = ref(null);
 const signForm = ref({ signer: '', sign_way: '本人签收' });
 const failForm = ref({ id: null, type: '拒收', desc: '' });
@@ -19,11 +19,14 @@ const reload = async () => {
 onMounted(reload);
 
 async function assign() {
-  err.value = ''; msg.value = '';
+  err.value = ''; msg.value = ''; lastAssign.value = [];
   if (!selected.value.length) { err.value = '先勾选「转运中」的运单'; return; }
   try {
-    await api.assignDelivery({ waybill_nos: selected.value, courier_id: courierId.value });
-    msg.value = `已生成派件任务单：${selected.value.join('、')}`;
+    // 不传 courier_id：派给谁由后端按「同片区优先 → 负载最低」自动定人，手选会被忽略
+    const d = await api.assignDelivery({ waybill_nos: selected.value });
+    lastAssign.value = d.assignments ?? [];
+    msg.value = `已生成派件任务 ${d.assigned} 单${d.skipped?.length ? `，跳过 ${d.skipped.length} 单（状态不符或无可用运力）` : ''}` +
+      (lastAssign.value.length ? '：' + lastAssign.value.map((a) => `${a.waybill_no} → ${a.courier}（${a.reason}）`).join('；') : '');
     selected.value = []; reload();
   } catch (e) { err.value = e.message; }
 }
@@ -33,6 +36,7 @@ function openSign(t) {
 }
 async function confirmSign() {
   err.value = ''; msg.value = '';
+  if (!signForm.value.signer.trim()) { err.value = '请填写签收人'; return; }
   try {
     await api.sign({ id: signing.value.id, ...signForm.value });
     msg.value = `签收成功：${signing.value.waybill_no}`;
@@ -60,14 +64,8 @@ async function markFail() {
     <div class="note err" v-if="err">{{ err }}</div>
 
     <div class="form-row">
-      <div class="field"><label>分配给快递员</label>
-        <select v-model="courierId">
-          <option :value="1">K1001 快递员小李</option>
-          <option :value="2">K1002 快递员小王</option>
-        </select>
-      </div>
-      <button class="btn" @click="assign">生成派件任务单</button>
-      <span style="color: var(--slate); font-size: 12px;">勾选下方「转运中」运单</span>
+      <button class="btn" @click="assign">生成派件任务单（自动分配）</button>
+      <span style="color: var(--slate); font-size: 12px;">勾选下方「转运中」运单；派给谁由系统按同片区 + 负载最低自动定人，不需要手选快递员</span>
     </div>
 
     <table class="doc" style="margin-bottom: 24px;">
@@ -138,7 +136,7 @@ async function markFail() {
       <div class="form-row">
         <div class="field"><label>异常类型</label>
           <select v-model="failForm.type">
-            <option>拒收</option><option>破损</option><option>丢失</option><option>联系不上</option>
+            <option>拒收</option><option>破损</option><option>丢失</option>
           </select>
         </div>
         <div class="field"><label>情况说明</label><input v-model="failForm.desc" style="min-width:240px" /></div>
