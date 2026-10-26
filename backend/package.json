@@ -1,0 +1,17 @@
+{
+  "name": "aepds-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "free-port": "node scripts/free-port.js",
+    "prestart": "node scripts/free-port.js",
+    "start": "node --experimental-sqlite server.js",
+    "predev": "node scripts/free-port.js",
+    "dev": "node --experimental-sqlite --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

@@ -1,0 +1,20 @@
+const { chromium } = require('C:/Users/26219/.workbuddy/binaries/node/workspace/node_modules/playwright-core');
+(async()=>{
+  const b = await chromium.launch({executablePath:'C:/Users/26219/AppData/Local/ms-playwright/chromium-1228/chrome-win64/chrome.exe'});
+  const p = await b.newPage({viewport:{width:1400,height:900}});
+  p.on('pageerror',e=>console.log('PAGEERR',e.message));
+  p.on('console',m=>{if(m.type()==='error')console.log('CONSOLE',m.text());});
+  await p.goto('http://127.0.0.1:3001/#/orders',{waitUntil:'load'});
+  await p.waitForTimeout(800);
+  const inputs = await p.$$('.form-row input');
+  console.log('input count:', inputs.length);
+  await inputs[0].fill('调试用户');
+  await inputs[1].fill('收件人B');
+  await inputs[2].fill('13600000001');
+  await inputs[3].fill('杭州市滨江区调试路2号');
+  await p.click('button:has-text("提交下单")');
+  await p.waitForTimeout(800);
+  const notes = await p.$$('.note');
+  for (const n of notes) console.log('note:', (await n.innerText()).slice(0,80), '| class:', await n.getAttribute('class'));
+  await b.close();
+})().catch(e=>{console.error('FATAL',e.message);process.exit(1);});
