@@ -1,0 +1,177 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/gw/auth-service/**
+              filters:
+                - StripPrefix=2
+            - id: order-service
+              uri: lb://order-service
+              predicates:
+                - Path=/gw/order-service/**
+              filters:
+                - StripPrefix=2
+            - id: customer-service
+              uri: lb://customer-service
+              predicates:
+                - Path=/gw/customer-service/**
+              filters:
+                - StripPrefix=2
+            - id: rate-service
+              uri: lb://rate-service
+              predicates:
+                - Path=/gw/rate-service/**
+              filters:
+                - StripPrefix=2
+            - id: billing-service
+              uri: lb://billing-service
+              predicates:
+                - Path=/gw/billing-service/**
+              filters:
+                - StripPrefix=2
+            - id: dispatch-service
+              uri: lb://dispatch-service
+              predicates:
+                - Path=/gw/dispatch-service/**
+              filters:
+                - StripPrefix=2
+            - id: task-service
+              uri: lb://task-service
+              predicates:
+                - Path=/gw/task-service/**
+              filters:
+                - StripPrefix=2
+            - id: exception-service
+              uri: lb://exception-service
+              predicates:
+                - Path=/gw/exception-service/**
+              filters:
+                - StripPrefix=2
+            - id: claim-service
+              uri: lb://claim-service
+              predicates:
+                - Path=/gw/claim-service/**
+              filters:
+                - StripPrefix=2
+            - id: track-service
+              uri: lb://track-service
+              predicates:
+                - Path=/gw/track-service/**
+              filters:
+                - StripPrefix=2
+            - id: report-service
+              uri: lb://report-service
+              predicates:
+                - Path=/gw/report-service/**
+              filters:
+                - StripPrefix=2
+            - id: notify-service
+              uri: lb://notify-service
+              predicates:
+                - Path=/gw/notify-service/**
+              filters:
+                - StripPrefix=2
+            # ===== 批次 7：/api 正式入口（与原版 server.js 的 /api 挂载表一一对应，StripPrefix=1 去掉 /api） =====
+            # /api/health 由网关本地 HealthController 处理（公开），不走路由。
+            - id: api-auth
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/auth,/api/auth/**
+              filters:
+                - StripPrefix=1
+            - id: api-customer
+              uri: lb://customer-service
+              predicates:
+                - Path=/api/customers,/api/customers/**
+              filters:
+                - StripPrefix=1
+            - id: api-order
+              uri: lb://order-service
+              predicates:
+                - Path=/api/orders,/api/orders/**,/api/service-areas
+              filters:
+                - StripPrefix=1
+            - id: api-rate
+              uri: lb://rate-service
+              predicates:
+                - Path=/api/rates,/api/rates/**,/api/pricing,/api/pricing/**
+              filters:
+                - StripPrefix=1
+            - id: api-billing
+              uri: lb://billing-service
+              predicates:
+                - Path=/api/billing,/api/billing/**,/api/waybills,/api/waybills/**
+              filters:
+                - StripPrefix=1
+            - id: api-pickup-candidates
+              uri: lb://dispatch-service
+              predicates:
+                - Path=/api/pickup/candidates
+              filters:
+                - StripPrefix=1
+            - id: api-dispatch
+              uri: lb://dispatch-service
+              predicates:
+                - Path=/api/dispatch,/api/dispatch/**,/api/flights,/api/flights/**
+              filters:
+                - StripPrefix=1
+            - id: api-task
+              uri: lb://task-service
+              predicates:
+                - Path=/api/employees,/api/employees/**,/api/pickup,/api/pickup/**,/api/transit,/api/transit/**,/api/delivery,/api/delivery/**
+              filters:
+                - StripPrefix=1
+            - id: api-exception
+              uri: lb://exception-service
+              predicates:
+                - Path=/api/exceptions,/api/exceptions/**
+              filters:
+                - StripPrefix=1
+            - id: api-claim
+              uri: lb://claim-service
+              predicates:
+                - Path=/api/claims,/api/claims/**
+              filters:
+                - StripPrefix=1
+            - id: api-track
+              uri: lb://track-service
+              predicates:
+                - Path=/api/tracking,/api/tracking/**
+              filters:
+                - StripPrefix=1
+            - id: api-report
+              uri: lb://report-service
+              predicates:
+                - Path=/api/performance,/api/reports,/api/reports/**,/api/board
+              filters:
+                - StripPrefix=1
+            - id: api-notify
+              uri: lb://notify-service
+              predicates:
+                - Path=/api/notifications,/api/notifications/**
+              filters:
+                - StripPrefix=1
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+aped:
+  jwt:
+    # 与 auth-service 必须一致；仅本地开发默认值，生产部署须经环境变量覆盖
+    secret: ${APED_JWT_SECRET:aped-dev-secret-please-change-0123456789abcdef}

@@ -1,0 +1,24 @@
+server:
+  port: 8100
+spring:
+  application:
+    name: auth-service
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+aped:
+  jwt:
+    # 与 gateway-service 必须一致；仅本地开发默认值，生产部署须经环境变量覆盖
+    secret: ${APED_JWT_SECRET:aped-dev-secret-please-change-0123456789abcdef}
+    ttl-hours: 12
