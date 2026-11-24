@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { api, fmt } from '../api.js';
+import PageHead from '../components/PageHead.vue';
 
 const orders = ref([]);
 const customers = ref([]);
@@ -78,10 +79,7 @@ async function cancel(o) {
 
 <template>
   <div class="content">
-    <div class="doc-head">
-      <h1>客户下单与取件预约</h1>
-      <span class="sub">order intake</span>
-    </div>
+    <PageHead code="ORD" title="客户下单与取件预约" sub="order intake" :count="orders.length" count-label="订单记录" />
 
     <div class="note ok" v-if="msg">{{ msg }}</div>
     <div class="note err" v-if="err">{{ err }}</div>

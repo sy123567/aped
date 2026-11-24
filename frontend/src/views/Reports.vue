@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { api, fmt } from '../api.js';
+import PageHead from '../components/PageHead.vue';
 
 const period = ref(new Date().toISOString().slice(0, 7));
 const sum = ref(null);
@@ -39,10 +40,7 @@ const pct = (v) => (v == null ? '—' : v + '%');
 
 <template>
   <div class="content">
-    <div class="doc-head">
-      <h1>运营统计与报表导出</h1>
-      <span class="sub">operations report · export</span>
-    </div>
+    <PageHead code="RPT" title="运营统计与报表导出" sub="operations report · export" :count="types.length" count-label="类报表" />
 
     <div class="note err" v-if="err">{{ err }}</div>
 

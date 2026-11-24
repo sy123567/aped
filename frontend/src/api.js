@@ -36,12 +36,9 @@ export const api = {
   login: (username, password) => call('/auth/login', { method: 'POST', body: { username, password } }),
   me: () => call('/auth/me'),
   logout: () => call('/auth/logout', { method: 'POST' }),
-  changePassword: (old_password, new_password) =>
-    call('/auth/password', { method: 'POST', body: { old_password, new_password } }),
 
   // 工作台 / 规则
   board: () => call('/board'),
-  health: () => call('/health'),
   dispatchRule: () => call('/dispatch/rule'),
   capacity: () => call('/dispatch/capacity'),
 
@@ -52,13 +49,10 @@ export const api = {
   cancelOrder: (id, reason) => call(`/orders/${id}/cancel`, { method: 'POST', body: { reason } }),
   customers: () => call('/customers'),
   customer: (id) => call('/customers/' + id),
-  serviceAreas: (addr) => call('/service-areas?addr=' + encodeURIComponent(addr ?? '')),
   tracking: (no) => call('/tracking/' + encodeURIComponent(no)),
   waybills: () => call('/waybills'),
 
   // 计费服务
-  rates: () => call('/rates'),
-  pricingRules: () => call('/pricing/rules'),
   bills: () => call('/billing'),
   bill: (id) => call('/billing/' + id),
   generateBill: (b) => call('/billing/generate', { method: 'POST', body: b }),
@@ -69,11 +63,8 @@ export const api = {
   employees: (role) => call('/employees' + (role ? '?role=' + role : '')),
   flights: () => call('/flights'),
   pickupTasks: () => call('/pickup/tasks'),
-  pickupCandidates: (orderId) => call('/pickup/candidates?order_id=' + orderId),
-  deliveryCandidates: (no) => call('/delivery/candidates?waybill_no=' + encodeURIComponent(no)),
   assignPickup: (b) => call('/pickup/assign', { method: 'POST', body: b }),
   acceptPickup: (id) => call('/pickup/accept', { method: 'POST', body: { id } }),
-  rollbackPickup: (id, reason) => call('/pickup/rollback', { method: 'POST', body: { id, reason } }),
   pickup: (b) => call('/pickup', { method: 'POST', body: b }),
   transitList: (no) => call('/transit' + (no ? '?waybill_no=' + encodeURIComponent(no) : '')),
   transitSuggest: (no) => call('/transit/suggest?waybill_no=' + encodeURIComponent(no)),
@@ -85,12 +76,10 @@ export const api = {
 
   // 异常理赔
   exceptions: () => call('/exceptions'),
-  exception: (id) => call('/exceptions/' + id),
   createException: (b) => call('/exceptions', { method: 'POST', body: b }),
   closeException: (id, reason) => call(`/exceptions/${id}/close`, { method: 'POST', body: { reason } }),
   assessException: (id, severity) =>
     call('/exceptions/' + id + '/assess' + (severity ? '?severity=' + encodeURIComponent(severity) : '')),
-  claims: () => call('/claims'),
   createClaim: (b) => call('/claims', { method: 'POST', body: b }),
   approveClaim: (b) => call('/claims/approve', { method: 'POST', body: b }),
 

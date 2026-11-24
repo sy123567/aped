@@ -2,10 +2,14 @@
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { api, session } from './api.js';
+import { NAV, filterNav } from './nav.js';
+import Directory from './components/Directory.vue';
 
 const router = useRouter();
 const route = useRoute();
 const user = ref(session.user);
+/* v10 · 全屏目录开关（各页可达：顶部坞首的 INDEX 按钮） */
+const dirOpen = ref(false);
 
 const clock = ref('');
 let timer;
@@ -22,30 +26,11 @@ onMounted(() => {
 });
 onUnmounted(() => clearInterval(timer));
 
-const nav = [
-  { to: '/my', t: '我的账户', mod: 'my', icon: 'M4 5h16v14H4zM4 9h16M8 14h4' },
-  { to: '/', t: '工作台', mod: 'board', icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
-  { to: '/orders', t: '客户下单', mod: 'orders', icon: 'M4 4h16v4H4zM4 12h16v8H4z' },
-  { to: '/dispatch', t: '派单调度', mod: 'dispatch', icon: 'M4 7h11l-2-2m2 2l-2 2M20 17H9l2-2m-2 2l2 2' },
-  { to: '/pickup', t: '揽收登记', mod: 'pickup', icon: 'M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z' },
-  { to: '/transit', t: '分拣中转', mod: 'transit', icon: 'M4 6h16M4 18h16M8 6v12M16 6v12' },
-  { to: '/delivery', t: '派送签收', mod: 'delivery', icon: 'M2 7h11v9H2zM13 10h4l3 3v3h-7zM6 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM17 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z' },
-  { to: '/tracking', t: '运单跟踪', mod: 'tracking', icon: 'M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7zm0 4.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5z' },
-  { to: '/exceptions', t: '异常理赔', mod: 'exceptions', icon: 'M12 2L1 21h22L12 2zm1 14h-2v2h2v-2zm0-7h-2v5h2V9z' },
-  { to: '/customers', t: '客户账户', mod: 'customers', icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0' },
-  { to: '/billing', t: '月结账单', mod: 'billing', icon: 'M4 3h16v18l-4-2-4 2-4-2-4 2V3zm2 4h12v2H6V7zm0 4h12v2H6v-2z' },
-  { to: '/performance', t: '绩效排名', mod: 'performance', icon: 'M4 20h16v2H4zM6 16h3V8H6zm5 0h3V4h-3zm5 0h3v-6h-3z' },
-  { to: '/reports', t: '运营报表', mod: 'reports', icon: 'M4 19V5m0 14h16M8 15v-4m4 4V8m4 7v-6' },
-];
-
+/* v8 · S1：导航定义与过滤规则收敛到 nav.js 单一数据源，与 Dashboard 底部坞同源同规则 */
+const nav = NAV;
 const isLogin = computed(() => route.path === '/login');
-const visibleNav = computed(() => {
-  if (!user.value) return [];                    // 未登录：不显示菜单
-  const mods = user.value.modules;
-  if (!mods || !mods.length) return nav;         // 模块信息缺失：宁可全显示，也别让菜单空白（后端仍会拦）
-  if (mods.includes('*')) return nav;            // 管理员
-  return nav.filter((n) => mods.includes(n.mod));
-});
+const currentNav = computed(() => nav.find((n) => n.to === route.path) || nav[1]);
+const visibleNav = computed(() => filterNav(user.value));
 
 // 关键：App 在登录页就已挂载，登录成功只是切路由、不会重新挂载。
 // 所以必须在每次路由变化后重新读一次登录用户，否则菜单永远是空的。
@@ -79,34 +64,52 @@ async function doLogout() {
   <RouterView v-if="isLogin" />
 
   <div class="shell" v-else>
-    <aside class="side">
-      <div class="brand">
-        <div class="logo">✈</div>
-        <div>
-          <div class="zh">航空快递<br>揽收与派送</div>
-          <div class="en">AEPDS v1.0</div>
-        </div>
+    <!-- v6 外壳：去框悬浮。品牌贴左上、玻璃胶囊导航坞浮在顶部中央、用户胶囊贴右上、状态贴左下，内容不被任何横带切开 -->
+    <div class="float-brand">
+      <div class="logo">✈</div>
+      <div class="btx">
+        <div class="zh">航空快递揽收与派送</div>
+        <div class="en">AEPDS · AIR EXPRESS OPS</div>
       </div>
-      <nav aria-label="主导航">
-        <RouterLink v-for="n in visibleNav" :key="n.to" :to="n.to">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path :d="n.icon" />
-          </svg>
-          <span class="t">{{ n.t }}</span>
-        </RouterLink>
-      </nav>
-      <div class="foot">
-        <div style="color:#cfd6e2">{{ user?.display_name || '未登录' }}</div>
-        <div style="margin-top:2px;font-size:11px;color:#7c8697">{{ user?.role_label || '' }}</div>
-        <div style="margin-top:6px">{{ clock }}</div>
-        <button @click="doLogout"
-                style="margin-top:8px;background:transparent;border:1px solid #2c3546;color:#9aa4b2;font-size:11px;padding:3px 8px;cursor:pointer;">
-          退出登录
-        </button>
-      </div>
-    </aside>
+    </div>
+
+    <nav class="dock glass" aria-label="主导航">
+      <button class="dock-item dir-open" @click="dirOpen = true" title="打开模块目录" aria-label="打开模块目录" :style="{ '--i': 0 }">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+        </svg>
+        <small>INDEX</small>
+      </button>
+      <RouterLink v-for="(n, i) in visibleNav" :key="n.to" :to="n.to" class="dock-item" :title="n.zh" :aria-label="n.zh" :style="{ '--i': i + 1 }">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path :d="n.icon" />
+        </svg>
+        <small>{{ n.code }}</small>
+        <span class="act-dot" aria-hidden="true"></span>
+      </RouterLink>
+    </nav>
+
+    <div class="float-user glass">
+      <span class="fu-clock">{{ clock }}<small>CST</small></span>
+      <span class="fu-sep" aria-hidden="true"></span>
+      <span class="fu-name"><b>{{ user?.display_name || '未登录' }}</b><small>{{ user?.role_label || '' }}</small></span>
+      <button class="fu-out" @click="doLogout">退出</button>
+    </div>
+
+    <div class="float-status" aria-hidden="true">
+      <span class="fs-dot"></span>
+      <span class="fs-mod">{{ currentNav.code }} — {{ currentNav.zh }}</span>
+      <span>HGH 杭州萧山枢纽 · NETWORK LIVE</span>
+    </div>
+
     <main class="main">
-      <RouterView />
+      <RouterView v-slot="{ Component }">
+        <Transition name="page" mode="out-in">
+          <component :is="Component" :key="route.path" />
+        </Transition>
+      </RouterView>
     </main>
+
+    <Directory :open="dirOpen" :user="user" @close="dirOpen = false" />
   </div>
 </template>

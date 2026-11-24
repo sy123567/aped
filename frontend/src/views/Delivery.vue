@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { api } from '../api.js';
+import PageHead from '../components/PageHead.vue';
 
 const tasks = ref([]);
 const waybills = ref([]);
@@ -55,10 +56,7 @@ async function markFail() {
 
 <template>
   <div class="content">
-    <div class="doc-head">
-      <h1>派件任务与签收</h1>
-      <span class="sub">delivery &amp; sign-off</span>
-    </div>
+    <PageHead code="DLV" title="派件任务与签收" sub="delivery & sign-off" :count="tasks.length" count-label="派件任务" />
 
     <div class="note ok" v-if="msg">{{ msg }}</div>
     <div class="note err" v-if="err">{{ err }}</div>

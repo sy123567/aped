@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { api } from '../api.js';
+import PageHead from '../components/PageHead.vue';
 
 const pool = ref([]);
 const cap = ref(null);
@@ -45,10 +46,7 @@ const toggleAll = (e) => { selected.value = e.target.checked ? pool.value.map((o
 
 <template>
   <div class="content">
-    <div class="doc-head">
-      <h1>派单调度</h1>
-      <span class="sub">按片区与负载自动定人</span>
-    </div>
+    <PageHead code="DSP" title="派单调度" sub="按片区与负载自动定人" :count="pool.length" count-label="待派单" />
 
     <div class="note ok" v-if="msg">{{ msg }}</div>
     <div class="note err" v-if="err">{{ err }}</div>

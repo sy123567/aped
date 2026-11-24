@@ -3,19 +3,20 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 import App from './App.vue';
 import './styles.css';
 import Login from './views/Login.vue';
-import My from './views/My.vue';
-import Dashboard from './views/Dashboard.vue';
-import Orders from './views/Orders.vue';
-import Dispatch from './views/Dispatch.vue';
-import Pickup from './views/Pickup.vue';
-import Transit from './views/Transit.vue';
-import Delivery from './views/Delivery.vue';
-import Tracking from './views/Tracking.vue';
-import Exceptions from './views/Exceptions.vue';
-import Customers from './views/Customers.vue';
-import Billing from './views/Billing.vue';
-import Performance from './views/Performance.vue';
-import Reports from './views/Reports.vue';
+/* v8 · M8：其余视图改为路由懒加载，登录页不再下载整包 */
+const My = () => import('./views/My.vue');
+const Dashboard = () => import('./views/Dashboard.vue');
+const Orders = () => import('./views/Orders.vue');
+const Dispatch = () => import('./views/Dispatch.vue');
+const Pickup = () => import('./views/Pickup.vue');
+const Transit = () => import('./views/Transit.vue');
+const Delivery = () => import('./views/Delivery.vue');
+const Tracking = () => import('./views/Tracking.vue');
+const Exceptions = () => import('./views/Exceptions.vue');
+const Customers = () => import('./views/Customers.vue');
+const Billing = () => import('./views/Billing.vue');
+const Performance = () => import('./views/Performance.vue');
+const Reports = () => import('./views/Reports.vue');
 
 const routes = [
   { path: '/login', component: Login, meta: { public: true } },

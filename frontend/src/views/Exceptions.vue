@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { api, tag } from '../api.js';
+import PageHead from '../components/PageHead.vue';
 
 const list = ref([]);
 const msg = ref('');
@@ -65,10 +66,7 @@ async function closeEx(e) {
 
 <template>
   <div class="content">
-    <div class="doc-head">
-      <h1>异常件处理与理赔</h1>
-      <span class="sub">exceptions &amp; claims</span>
-    </div>
+    <PageHead code="EXC" title="异常件处理与理赔" sub="exceptions & claims" :count="list.length" count-label="异常件" />
 
     <div class="note ok" v-if="msg">{{ msg }}</div>
     <div class="note err" v-if="err">{{ err }}</div>

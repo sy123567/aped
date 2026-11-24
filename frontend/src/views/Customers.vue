@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { api, fmt, session } from '../api.js';
+import PageHead from '../components/PageHead.vue';
 
 // 取消订单接口只对调度/客户本人开放（财务角色调用会被后端 403），故按角色隐藏按钮，admin 恒可
 const canCancel = ['admin', 'dispatcher'].includes(session.user?.role);
@@ -76,10 +77,7 @@ async function cancel(o) {
 
 <template>
   <div class="content">
-    <div class="doc-head">
-      <h1>客户账户与月结账单</h1>
-      <span class="sub">accounts &amp; monthly billing</span>
-    </div>
+    <PageHead code="CUS" title="客户账户与月结账单" sub="accounts & monthly billing" :count="list.length" count-label="客户" />
 
     <div class="note ok" v-if="msg">{{ msg }}</div>
     <div class="note err" v-if="err">{{ err }}</div>

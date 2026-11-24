@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { api, fmt } from '../api.js';
+import PageHead from '../components/PageHead.vue';
 
 const bills = ref([]);
 const customers = ref([]);
@@ -92,10 +93,7 @@ const remainOf = (b) => +(b.amount - (b.paid_amount ?? 0)).toFixed(2);
 
 <template>
   <div class="content">
-    <div class="doc-head">
-      <h1>月结账单</h1>
-      <span class="sub">monthly billing · settle</span>
-    </div>
+    <PageHead code="BIL" title="月结账单" sub="monthly billing · settle" :count="bills.length" count-label="账单" />
 
     <div class="note ok" v-if="msg">{{ msg }}</div>
     <div class="note err" v-if="err">{{ err }}</div>

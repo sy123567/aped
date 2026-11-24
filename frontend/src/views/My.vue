@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { api, session, fmt } from '../api.js';
+import PageHead from '../components/PageHead.vue';
 
 const user = session.user ?? {};
 const me = ref(null);
@@ -46,10 +47,7 @@ async function cancel(o) {
 
 <template>
   <div class="content">
-    <div class="doc-head">
-      <h1>我的账户</h1>
-      <span class="sub">my account</span>
-    </div>
+    <PageHead code="MY" title="我的账户" sub="my account" :count="me ? stat('cnt') : null" count-label="我的订单" />
 
     <div class="note ok" v-if="msg">{{ msg }}</div>
     <div class="note err" v-if="err">{{ err }}</div>

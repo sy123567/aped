@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { api, fmt } from '../api.js';
+import PageHead from '../components/PageHead.vue';
 
 const tasks = ref([]);
 const msg = ref('');
@@ -58,10 +59,7 @@ async function submit() {
 
 <template>
   <div class="content">
-    <div class="doc-head">
-      <h1>揽收登记</h1>
-      <span class="sub">pickup &amp; billing</span>
-    </div>
+    <PageHead code="PKU" title="揽收登记" sub="pickup & billing" :count="tasks.length" count-label="揽收任务" />
 
     <div class="note ok" v-if="msg">{{ msg }}</div>
     <div class="note err" v-if="err">{{ err }}</div>

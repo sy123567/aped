@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { api, tag, session } from '../api.js';
+import PageHead from '../components/PageHead.vue';
 
 const no = ref('');
 const result = ref(null);
@@ -29,10 +30,7 @@ async function submitTransit() {
 
 <template>
   <div class="content">
-    <div class="doc-head">
-      <h1>运单跟踪</h1>
-      <span class="sub">tracking &amp; transit log</span>
-    </div>
+    <PageHead code="TRK" title="运单跟踪" sub="tracking & transit log" />
 
     <div class="form-row">
       <div class="field"><label>运单号</label>

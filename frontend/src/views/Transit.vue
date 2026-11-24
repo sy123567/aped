@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { api } from '../api.js';
+import PageHead from '../components/PageHead.vue';
 
 const rows = ref([]);
 const waybills = ref([]);
@@ -44,10 +45,7 @@ async function submit() {
 
 <template>
   <div class="content">
-    <div class="doc-head">
-      <h1>分拣中转登记</h1>
-      <span class="sub">sorting &amp; handover</span>
-    </div>
+    <PageHead code="TRN" title="分拣中转登记" sub="sorting & handover" :count="rows.length" count-label="中转记录" />
 
     <div class="note ok" v-if="msg">{{ msg }}</div>
     <div class="note err" v-if="err">{{ err }}</div>
